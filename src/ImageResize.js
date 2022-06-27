@@ -16,6 +16,11 @@ export default class ImageResize {
     constructor(quill, options = {}) {
         // save the quill reference and options
         this.quill = quill;
+        if (options.globalQuill) {
+          this.globalQuill = options.globalQuill;
+        } else {
+          this.globalQuill = Quill;
+        }
 
         // Apply the options to our defaults, and stash them for later
         // defaultsDeep doesn't do arrays as you'd expect, so we'll need to apply the classes array from options separately
@@ -188,13 +193,9 @@ export default class ImageResize {
     checkImage = (evt) => {
         if (this.img) {
             if (evt.keyCode == 46 || evt.keyCode == 8) {
-                window.Quill.find(this.img).deleteAt(0);
+                this.globalQuill.find(this.img).deleteAt(0);
             }
             this.hide();
         }
     };
-}
-
-if (window.Quill) {
-    window.Quill.register('modules/imageResize', ImageResize);
 }
