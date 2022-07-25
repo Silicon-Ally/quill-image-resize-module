@@ -1,6 +1,12 @@
 import { BaseModule } from './BaseModule';
 
 export class Resize extends BaseModule {
+    supportsTouch = () => {
+      return 'ontouchstart' in window ||
+             navigator.maxTouchPoints > 0 ||
+             navigator.msMaxTouchPoints > 0;
+    };
+
     onCreate = () => {
         // track resize handles
         this.boxes = [];
@@ -47,7 +53,11 @@ export class Resize extends BaseModule {
         box.style.height = `${this.options.handleStyles.height}px`;
 
         // listen for mousedown on each box
-        box.addEventListener('mousedown', this.handleMousedown, false);
+        if (this.supportsTouch()) {
+          box.addEventListener('touchstart', this.handleMousedown, false);
+        } else {
+          box.addEventListener('mousedown', this.handleMousedown, false);
+        }
         // add drag handle to document
         this.overlay.appendChild(box);
         // keep track of drag handle
@@ -58,22 +68,36 @@ export class Resize extends BaseModule {
         // note which box
         this.dragBox = evt.target;
         // note starting mousedown position
-        this.dragStartX = evt.clientX;
+        if (this.supportsTouch()) {
+          this.dragStartX = evt.touches[0].clientX;
+        } else {
+          this.dragStartX = evt.clientX;
+        }
         // store the width before the drag
         this.preDragWidth = this.img.width || this.img.naturalWidth;
         // set the proper cursor everywhere
         this.setCursor(this.dragBox.style.cursor);
         // listen for movement and mouseup
-        document.addEventListener('mousemove', this.handleDrag, false);
-        document.addEventListener('mouseup', this.handleMouseup, false);
+        if (this.supportsTouch()) {
+          document.addEventListener('touchmove', this.handleDrag, false);
+          document.addEventListener('touchend', this.handleMouseup, false);
+        } else {
+          document.addEventListener('mousemove', this.handleDrag, false);
+          document.addEventListener('mouseup', this.handleMouseup, false);
+        }
     };
 
     handleMouseup = () => {
         // reset cursor everywhere
         this.setCursor('');
         // stop listening for movement and mouseup
-        document.removeEventListener('mousemove', this.handleDrag);
-        document.removeEventListener('mouseup', this.handleMouseup);
+        if (this.supportsTouch()) {
+          document.removeEventListener('touchmove', this.handleDrag);
+          document.removeEventListener('touchend', this.handleMouseup);
+        } else {
+          document.removeEventListener('mousemove', this.handleDrag);
+          document.removeEventListener('mouseup', this.handleMouseup);
+        }
     };
 
     handleDrag = (evt) => {
@@ -82,7 +106,13 @@ export class Resize extends BaseModule {
             return;
         }
         // update image size
-        const deltaX = evt.clientX - this.dragStartX;
+        let clientX;
+        if (this.supportsTouch()) {
+          clientX = evt.touches[0].clientX;
+        } else {
+          clientX = evt.clientX;
+        }
+        const deltaX = clientX - this.dragStartX;
         if (this.dragBox === this.boxes[0] || this.dragBox === this.boxes[3]) {
             // left-side resize handler; dragging right shrinks image
             this.img.width = Math.round(this.preDragWidth - deltaX);
